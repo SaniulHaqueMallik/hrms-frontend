@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { fetchAttendance, deleteAttendance } from "../services/attendanceService";
 
 function AttendanceList({ employeeId, refreshKey, onRefresh }) {
@@ -9,7 +9,7 @@ function AttendanceList({ employeeId, refreshKey, onRefresh }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadAttendance = () => {
+  const loadAttendance = useCallback(() => {
     if (!employeeId) return;
 
     setLoading(true);
@@ -21,11 +21,11 @@ function AttendanceList({ employeeId, refreshKey, onRefresh }) {
       })
       .catch(() => setError("Failed to fetch attendance"))
       .finally(() => setLoading(false));
-  };
+  }, [employeeId]);
 
   useEffect(() => {
     loadAttendance();
-  }, [employeeId, refreshKey]);
+  }, [loadAttendance, refreshKey]);
 
   // ------------------
   // DATE FILTER
@@ -34,10 +34,10 @@ function AttendanceList({ employeeId, refreshKey, onRefresh }) {
     let result = attendance;
 
     if (fromDate) {
-      result = result.filter(att => att.date >= fromDate);
+      result = result.filter((att) => att.date >= fromDate);
     }
     if (toDate) {
-      result = result.filter(att => att.date <= toDate);
+      result = result.filter((att) => att.date <= toDate);
     }
 
     setFiltered(result);
@@ -45,8 +45,9 @@ function AttendanceList({ employeeId, refreshKey, onRefresh }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this record?")) return;
+
     await deleteAttendance(id);
-    onRefresh();
+    onRefresh(); // triggers refreshKey change
   };
 
   if (!employeeId) return <p>Select employee to view attendance</p>;
@@ -56,13 +57,24 @@ function AttendanceList({ employeeId, refreshKey, onRefresh }) {
   return (
     <div>
       <h3>Attendance Records</h3>
-        <p><b>Total Present Days:</b> {
-        attendance.filter(att => att.status === "Present").length
-        }</p>
+
+      <p>
+        <b>Total Present Days:</b>{" "}
+        {attendance.filter((att) => att.status === "Present").length}
+      </p>
+
       {/* FILTER UI */}
       <div style={{ marginBottom: "10px" }}>
-        <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-        <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+        />
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+        />
         <button onClick={applyFilter}>Filter</button>
       </div>
 
@@ -78,12 +90,14 @@ function AttendanceList({ employeeId, refreshKey, onRefresh }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(att => (
+            {filtered.map((att) => (
               <tr key={att.id}>
                 <td>{att.date}</td>
                 <td>{att.status}</td>
                 <td>
-                  <button onClick={() => handleDelete(att.id)}>Delete</button>
+                  <button onClick={() => handleDelete(att.id)}>
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}
